@@ -32,7 +32,24 @@ function card(a, opts={}){
   </article>`;
 }
 async function api(path){
-  const r=await fetch(API+path); if(!r.ok) throw new Error("Anime catalogue is temporarily unavailable"); return r.json();
+  // Jikan applies strict rate limits. Retry throttled requests instead of failing immediately.
+  let lastError;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const r=await fetch(API+path);
+      if(r.status===429||r.status>=500){
+        lastError=new Error(r.status===429?"The catalogue is busy. Retrying...":"The catalogue is temporarily unavailable.");
+        await new Promise(resolve=>setTimeout(resolve,1000*(attempt+1)));
+        continue;
+      }
+      if(!r.ok) throw new Error("Catalogue request failed ("+r.status+").");
+      return await r.json();
+    }catch(error){
+      lastError=error;
+      if(attempt<2) await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));
+    }
+  }
+  throw lastError||new Error("Could not reach the anime catalogue.");
 }
 async function loadHome(){
   try{
@@ -102,14 +119,24 @@ function getAnimeFromCard(id){
   if(saved)return {...saved,image:saved.image};
   return null;
 }
+let searchRequest=0;
 async function searchAnime(q){
+  const query=q.trim(), request=++searchRequest;
   const grid=document.querySelector("#discover-grid"),empty=document.querySelector("#discover-empty");
-  if(!q.trim()){grid.innerHTML="";document.querySelector("#discover-caption").textContent="Popular searches to get you started";empty.classList.add("hidden");return}
+  if(!query){grid.innerHTML="";document.querySelector("#discover-caption").textContent="Search by title to get started";empty.classList.add("hidden");return}
   grid.innerHTML='<div class="loading-state">Searching anime catalogue...</div>';empty.classList.add("hidden");
-  try{const data=await api(`/anime?q=${encodeURIComponent(q)}&limit=20&sfw=true`);const results=data.data||[];
-    document.querySelector("#discover-caption").textContent=`${results.length} results for “${q}”`;
-    grid.innerHTML=results.map(a=>card(a)).join("");empty.classList.toggle("hidden",results.length>0);
-  }catch(e){grid.innerHTML='<div class="loading-state">Search is temporarily unavailable. Please try again.</div>'}
+  try{
+    const data=await api(`/anime?q=${encodeURIComponent(query)}&limit=20&sfw=true&order_by=popularity&sort=asc`);
+    if(request!==searchRequest)return;
+    const results=data.data||[];
+    document.querySelector("#discover-caption").textContent=`${results.length} results for “${query}”`;
+    grid.innerHTML=results.map(a=>card(a)).join("");
+    empty.classList.toggle("hidden",results.length>0);
+  }catch(e){
+    if(request!==searchRequest)return;
+    document.querySelector("#discover-caption").textContent="Could not complete that search";
+    grid.innerHTML='<div class="loading-state">The anime catalogue did not respond. Wait a moment and try again.</div>';
+  }
 }
 function animeFromApi(id, source){
   const a=source;
@@ -134,8 +161,8 @@ document.querySelector("#modal-backdrop").addEventListener("click",e=>{if(e.targ
 document.querySelector("#status-filters").addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(!b)return;currentFilter=b.dataset.filter;document.querySelectorAll(".filter-tab").forEach(x=>x.classList.toggle("active",x===b));renderList()});
 document.querySelector("#add-from-list").onclick=()=>{location.hash="discover";setTimeout(()=>document.querySelector("#anime-search").focus(),50)};
 document.querySelector("#empty-add").onclick=()=>{location.hash="discover";setTimeout(()=>document.querySelector("#anime-search").focus(),50)};
-let searchTimer;document.querySelector("#anime-search").addEventListener("input",e=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>searchAnime(e.target.value),450)});
-document.querySelector("#anime-search").addEventListener("keydown",e=>{if(e.key==="Enter")searchAnime(e.target.value)});
+let searchTimer;document.querySelector("#anime-search").addEventListener("input",e=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>searchAnime(e.target.value),850)});
+document.querySelector("#anime-search").addEventListener("keydown",e=>{if(e.key==="Enter"){clearTimeout(searchTimer);searchAnime(e.target.value)}});
 document.querySelector("#quick-search").onclick=()=>{location.hash="discover";setTimeout(()=>document.querySelector("#anime-search").focus(),80)};
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 updateStats();showPage(location.hash.slice(1)||"home");loadHome();
