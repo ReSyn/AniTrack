@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101116">
+  <title>AniTrack — Your anime, your pace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#home" aria-label="AniTrack home"><span class="brand-mark">A</span><span>ani<span class="brand-light">track</span></span></a>
+      <div class="side-label">WORKSPACE</div>
+      <nav class="nav">
+        <a href="#home" data-page="home" class="nav-link active"><span class="nav-icon">⌂</span> Overview</a>
+        <a href="#list" data-page="list" class="nav-link"><span class="nav-icon">▤</span> Your list <span id="list-count" class="nav-count">0</span></a>
+        <a href="#ranking" data-page="ranking" class="nav-link"><span class="nav-icon">↟</span> Your ranking</a>
+        <a href="#discover" data-page="discover" class="nav-link"><span class="nav-icon">⌕</span> Discover anime</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="storage-note"><span class="status-dot"></span><div><b>Private library</b><small>Saved on this device</small></div></div>
+        <p class="side-foot">ANITRACK <span>·</span> YOUR PERSONAL ANIME LOG</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark">A</span> anitrack</div>
+        <div class="breadcrumb" id="breadcrumb">OVERVIEW <span>/</span> HOME</div>
+        <div class="top-actions">
+          <button class="icon-button" id="quick-search" title="Search anime">⌕</button>
+          <div class="avatar">A</div>
+        </div>
+      </header>
+
+      <section id="page-home" class="page active">
+        <div class="welcome-row">
+          <div><div class="eyebrow"><span class="live-dot"></span> YOUR ANIME SPACE</div><h1>Keep track of<br><em>every story.</em></h1><p class="subheading">Your watchlist, ratings, and next favourites — all in one place.</p></div>
+          <div class="hero-orbit"><div class="orbit-ring"></div><div class="orbit-core">アニメ<span>TRACKER</span></div><i class="spark s1">✳</i><i class="spark s2">✦</i><i class="spark s3">✧</i></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-label">IN YOUR LIST</span><strong id="stat-total">0</strong><small>anime tracked</small></div>
+          <div class="stat-card"><span class="stat-label">COMPLETED</span><strong id="stat-completed">0</strong><small>stories finished</small></div>
+          <div class="stat-card"><span class="stat-label">YOUR AVERAGE</span><strong id="stat-average">—</strong><small>out of 10</small></div>
+        </div>
+        <section class="content-section">
+          <div class="section-heading"><div><div class="eyebrow">THE CURRENT SEASON</div><h2>Trending right now <span class="heading-star">✳</span></h2><p>Currently airing and popular picks, refreshed from the anime catalogue.</p></div><a class="text-link" href="#discover">Explore all <span>↗</span></a></div>
+          <div id="trending-grid" class="anime-grid"><div class="loading-state">Loading this season's anime<span class="loading-dots">...</span></div></div>
+        </section>
+        <section class="content-section">
+          <div class="section-heading"><div><div class="eyebrow">FAN FAVOURITES</div><h2>Popular anime</h2><p>Some of the most-watched anime to add to your list.</p></div></div>
+          <div id="popular-grid" class="anime-grid"><div class="loading-state">Loading popular anime<span class="loading-dots">...</span></div></div>
+        </section>
+      </section>
+
+      <section id="page-list" class="page">
+        <div class="page-intro"><div class="eyebrow">YOUR PERSONAL LIBRARY</div><h1>Your <em>list.</em></h1><p>Everything you're watching, finished, or saving for later.</p></div>
+        <div class="toolbar"><div class="filter-tabs" id="status-filters"><button class="filter-tab active" data-filter="All">All <span id="filter-all">0</span></button><button class="filter-tab" data-filter="Currently watching">Watching</button><button class="filter-tab" data-filter="Waiting for new release">Waiting</button><button class="filter-tab" data-filter="Completed">Completed</button><button class="filter-tab" data-filter="On pause">On pause</button><button class="filter-tab" data-filter="Gave up on">Dropped</button></div><button class="primary-button" id="add-from-list">＋ Add anime</button></div>
+        <div id="list-grid" class="anime-grid list-grid"></div>
+        <div id="list-empty" class="empty-state"><div class="empty-icon">▤</div><h3>Your list is a blank page.</h3><p>Search for an anime and add it to start building your library.</p><button class="primary-button" id="empty-add">＋ Find anime</button></div>
+      </section>
+
+      <section id="page-ranking" class="page">
+        <div class="page-intro"><div class="eyebrow">THE VERDICT IS YOURS</div><h1>Your <em>ranking.</em></h1><p>Your watched anime, sorted from your highest rating to your lowest.</p></div>
+        <div class="ranking-summary"><span>YOUR TOP PICKS</span><strong id="ranked-count">0 rated anime</strong></div>
+        <div id="ranking-list" class="ranking-list"></div>
+        <div id="ranking-empty" class="empty-state"><div class="empty-icon">↟</div><h3>No ratings yet.</h3><p>Rate an anime when you add it, or come back and rate it later.</p><a class="text-link" href="#discover">Find anime <span>↗</span></a></div>
+      </section>
+
+      <section id="page-discover" class="page">
+        <div class="page-intro"><div class="eyebrow">FIND YOUR NEXT WATCH</div><h1>Discover <em>anime.</em></h1><p>Search the catalogue and add anything you want to keep track of.</p></div>
+        <div class="search-panel"><span class="search-symbol">⌕</span><input id="anime-search" type="search" placeholder="Search anime titles..." autocomplete="off"><kbd>ENTER</kbd></div>
+        <div class="discover-meta"><span id="discover-caption">Popular searches to get you started</span><span>Powered by Jikan · MyAnimeList data</span></div>
+        <div id="discover-grid" class="anime-grid"></div>
+        <div id="discover-empty" class="empty-state hidden"><h3>No anime found.</h3><p>Try another title or check the spelling.</p></div>
+      </section>
+
+      <footer class="footer">Made for your watchlist <span>✳</span> AniTrack stores your data locally on this device.</footer>
+    </main>
+  </div>
+
+  <div class="mobile-nav">
+    <a href="#home" data-page="home" class="active"><span>⌂</span>Home</a>
+    <a href="#list" data-page="list"><span>▤</span>List</a>
+    <a href="#ranking" data-page="ranking"><span>↟</span>Ranking</a>
+    <a href="#discover" data-page="discover"><span>⌕</span>Discover</a>
+  </div>
+
+  <div class="modal-backdrop hidden" id="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" id="modal-close" aria-label="Close">×</button>
+      <div id="modal-content"></div>
+    </section>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
