@@ -32,21 +32,29 @@ function card(a, opts={}){
   </article>`;
 }
 async function api(path){
-  // Jikan applies strict rate limits. Retry throttled requests instead of failing immediately.
+  // Never let a stalled catalogue request leave the interface loading forever.
   let lastError;
   for(let attempt=0;attempt<3;attempt++){
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),10000);
     try{
-      const r=await fetch(API+path);
+      const r=await fetch(API+path,{signal:controller.signal,headers:{Accept:"application/json"}});
       if(r.status===429||r.status>=500){
-        lastError=new Error(r.status===429?"The catalogue is busy. Retrying...":"The catalogue is temporarily unavailable.");
-        await new Promise(resolve=>setTimeout(resolve,1000*(attempt+1)));
+        lastError=new Error(r.status===429?"The catalogue is busy.":"The catalogue is temporarily unavailable.");
+        if(attempt<2) await new Promise(resolve=>setTimeout(resolve,800*(attempt+1)));
         continue;
       }
       if(!r.ok) throw new Error("Catalogue request failed ("+r.status+").");
       return await r.json();
     }catch(error){
-      lastError=error;
-      if(attempt<2) await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));
+      lastError=error.name==="AbortError"
+        ? new Error("The catalogue took too long to respond. Check your connection and try again.")
+        : new Error("Could not connect to the anime catalogue. Check your connection or try again later.");
+      // A timeout or network failure is unlikely to improve by immediately repeating it.
+      if(error.name==="AbortError"||attempt===2) break;
+      await new Promise(resolve=>setTimeout(resolve,600));
+    }finally{
+      clearTimeout(timeout);
     }
   }
   throw lastError||new Error("Could not reach the anime catalogue.");
