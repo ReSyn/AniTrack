@@ -1,4 +1,4 @@
-const API = "https://api.jikan.moe/v4";
+const API = "https://graphql.anilist.co";
 const ANIKOTO = "https://anikoto.cz";
 const STATUSES = ["Currently watching","Waiting for new release","Completed","Gave up on","On pause"];
 const STATUS_CLASS = s => "status-" + s.replaceAll(" ","-");
@@ -32,32 +32,41 @@ function card(a, opts={}){
   </article>`;
 }
 async function api(path){
-  // Never let a stalled catalogue request leave the interface loading forever.
-  let lastError;
-  for(let attempt=0;attempt<3;attempt++){
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),10000);
-    try{
-      const r=await fetch(API+path,{signal:controller.signal,headers:{Accept:"application/json"}});
-      if(r.status===429||r.status>=500){
-        lastError=new Error(r.status===429?"The catalogue is busy.":"The catalogue is temporarily unavailable.");
-        if(attempt<2) await new Promise(resolve=>setTimeout(resolve,800*(attempt+1)));
-        continue;
-      }
-      if(!r.ok) throw new Error("Catalogue request failed ("+r.status+").");
-      return await r.json();
-    }catch(error){
-      lastError=error.name==="AbortError"
-        ? new Error("The catalogue took too long to respond. Check your connection and try again.")
-        : new Error("Could not connect to the anime catalogue. Check your connection or try again later.");
-      // A timeout or network failure is unlikely to improve by immediately repeating it.
-      if(error.name==="AbortError"||attempt===2) break;
-      await new Promise(resolve=>setTimeout(resolve,600));
-    }finally{
-      clearTimeout(timeout);
-    }
-  }
-  throw lastError||new Error("Could not reach the anime catalogue.");
+  // AniList GraphQL replaces Jikan, which is unreachable on some networks.
+  const isSearch=path.startsWith("/anime?");
+  const params=new URLSearchParams(path.split("?")[1]||"");
+  const search=isSearch?params.get("q")||"":null;
+  const query = isSearch
+    ? `query ($search: String) { Page(page: 1, perPage: 20) { media(search: $search, type: ANIME, sort: POPULARITY_DESC) { id title { romaji english } coverImage { large } averageScore episodes format seasonYear status startDate { year } } } }`
+    : `query { Page(page: 1, perPage: 10) { media(type: ANIME, status: RELEASING, sort: POPULARITY_DESC) { id title { romaji english } coverImage { large } averageScore episodes format seasonYear status startDate { year } } } }`;
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    const response=await fetch(API,{
+      method:"POST",
+      signal:controller.signal,
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({query,variables:isSearch?{search}:{} })
+    });
+    if(!response.ok) throw new Error("Anime catalogue request failed ("+response.status+").");
+    const result=await response.json();
+    if(result.errors?.length) throw new Error("Anime catalogue returned an error.");
+    const items=result.data?.Page?.media||[];
+    return {data:items.map(a=>({
+      mal_id:a.id,
+      title:a.title.english||a.title.romaji||"Untitled",
+      images:{webp:{large_image_url:a.coverImage.large},jpg:{large_image_url:a.coverImage.large}},
+      score:a.averageScore? a.averageScore/10:null,
+      episodes:a.episodes,
+      type:a.format||"Anime",
+      year:a.seasonYear||a.startDate?.year,
+      url:"https://anilist.co/anime/"+a.id
+    }))};
+  }catch(error){
+    if(error.name==="AbortError") throw new Error("The anime catalogue timed out. Check your connection and try again.");
+    throw new Error("Could not connect to AniList. Check your connection or try again later.");
+  }finally{clearTimeout(timeout)}
+}
 }
 async function loadHome(){
   try{
